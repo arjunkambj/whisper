@@ -10,6 +10,7 @@
 ## Build, Test, and Development Commands
 - `bun run dev`: Start local development server (`http://localhost:3000`).
 - `bun run build`: Create production build (includes type/lint-sensitive compile checks).
+- `bun run check-types`: Run TypeScript type-checking (`tsc --noEmit`).
 - `bun run start`: Run the production build locally.
 - `bun run lint`: Run Biome checks across the repository.
 - `bun run format`: Apply Biome formatting.
@@ -36,7 +37,7 @@ DONT DO PNPM DEV OR NPX CONVEX DEV BECAUSE IS ALWAYS RUNNING IN MY TERMINAL
 
 ## Testing Guidelines
 - There is no dedicated test framework configured yet.
-- Baseline validation before opening a PR: `bun run lint` and `bun run build`.
+- Baseline validation before opening a PR: `bun run check-types`, `bun run lint`, and `bun run build`.
 - For Convex changes, run `npx convex dev` and verify end-to-end behavior in the UI (upload, transcription creation, history retrieval).
 - If adding tests, use `*.test.ts`/`*.test.tsx` naming and colocate near the feature or in a focused `src/__tests__` folder.
 

@@ -1,10 +1,10 @@
-import { experimental_transcribe as transcribe } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { experimental_transcribe as transcribe } from "ai";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 
 const convex = new ConvexHttpClient(
-  process.env.NEXT_PUBLIC_CONVEX_URL as string
+  process.env.NEXT_PUBLIC_CONVEX_URL as string,
 );
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
@@ -32,19 +32,30 @@ export async function POST(request: Request) {
   if (!ALLOWED_TYPES.has(file.type)) {
     return Response.json(
       { error: `Unsupported file type: ${file.type}` },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   if (file.size > MAX_FILE_SIZE) {
     return Response.json(
       { error: "File size exceeds 25MB limit" },
-      { status: 400 }
+      { status: 400 },
+    );
+  }
+
+  const isDuplicate = await convex.query(api.transcriptions.checkDuplicate, {
+    fileName: file.name,
+    fileSize: file.size,
+  });
+  if (isDuplicate) {
+    return Response.json(
+      { error: "This file has already been transcribed" },
+      { status: 409 },
     );
   }
 
   const result = await transcribe({
-    model: openai.transcription("whisper-1"),
+    model: openai.transcription("gpt-4o-transcribe"),
     audio: new Uint8Array(await file.arrayBuffer()),
     providerOptions: {
       openai: { response_format: "verbose_json" },

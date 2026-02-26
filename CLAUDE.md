@@ -20,6 +20,7 @@ Whisper is a full-stack audio transcription app. Users upload audio/video files,
 - `bun dev` — Start Next.js dev server
 - `bunx convex dev` — Start Convex backend dev server (run alongside `bun dev`)
 - `bun run build` — Production build
+- `bun run check-types` — Type-check with TypeScript (`tsc --noEmit`)
 - `bun run lint` — Lint with Biome (`biome check`)
 - `bun run format` — Auto-format with Biome (`biome format --write`)
 

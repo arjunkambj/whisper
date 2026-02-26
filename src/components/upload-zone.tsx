@@ -1,11 +1,11 @@
 "use client";
 
+import { IconUpload } from "@tabler/icons-react";
 import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { IconUpload } from "@tabler/icons-react";
 import { formatFileSize } from "@/lib/format";
-import { toast } from "sonner";
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 const ACCEPTED_TYPES = [
@@ -38,7 +38,7 @@ export function UploadZone({ onFilesAdded }: UploadZoneProps) {
         }
         if (file.size > MAX_FILE_SIZE) {
           toast.error(
-            `${file.name} too large (${formatFileSize(file.size)}). Max 25MB.`
+            `${file.name} too large (${formatFileSize(file.size)}). Max 25MB.`,
           );
           continue;
         }
@@ -46,7 +46,7 @@ export function UploadZone({ onFilesAdded }: UploadZoneProps) {
       }
       if (valid.length > 0) onFilesAdded(valid);
     },
-    [onFilesAdded]
+    [onFilesAdded],
   );
 
   const onDrop = useCallback(
@@ -57,7 +57,7 @@ export function UploadZone({ onFilesAdded }: UploadZoneProps) {
         validateAndPass(e.dataTransfer.files);
       }
     },
-    [validateAndPass]
+    [validateAndPass],
   );
 
   return (
@@ -77,10 +77,7 @@ export function UploadZone({ onFilesAdded }: UploadZoneProps) {
         <p className="text-sm text-muted-foreground">
           Drag & drop audio files, or click to browse
         </p>
-        <Button
-          variant="outline"
-          onClick={() => fileInputRef.current?.click()}
-        >
+        <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
           Choose files
         </Button>
         <input

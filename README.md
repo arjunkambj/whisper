@@ -80,5 +80,6 @@ convex/
 | `bun dev` | Start Next.js dev server |
 | `bunx convex dev` | Start Convex dev server |
 | `bun run build` | Production build |
+| `bun run check-types` | Type-check with TypeScript (`tsc --noEmit`) |
 | `bun run lint` | Lint with Biome |
 | `bun run format` | Auto-format with Biome |

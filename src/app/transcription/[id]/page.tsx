@@ -1,35 +1,35 @@
 "use client";
 
-import { use, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { useQuery } from "convex-helpers/react/cache";
-import { useMutation } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
-import type { Id } from "../../../../convex/_generated/dataModel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  formatTimestamp,
-  formatFileSize,
-  formatRelativeTime,
-} from "@/lib/format";
 import {
   IconArrowLeft,
+  IconCheck,
   IconCopy,
   IconEdit,
-  IconCheck,
-  IconX,
   IconLanguage,
   IconLoader2,
   IconTrash,
+  IconX,
 } from "@tabler/icons-react";
+import { useMutation } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { use, useState } from "react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  formatFileSize,
+  formatRelativeTime,
+  formatTimestamp,
+} from "@/lib/format";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 
 export default function TranscriptionDetailPage({
   params,
@@ -43,6 +43,9 @@ export default function TranscriptionDetailPage({
   });
   const updateMutation = useMutation(api.transcriptions.update);
   const removeMutation = useMutation(api.transcriptions.remove);
+  const saveTransliterationMutation = useMutation(
+    api.transcriptions.saveTransliteration,
+  );
 
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState("");
@@ -85,7 +88,10 @@ export default function TranscriptionDetailPage({
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">Transcription not found.</p>
-            <Link href="/" className="text-sm text-primary hover:underline mt-2 inline-block">
+            <Link
+              href="/"
+              className="text-sm text-primary hover:underline mt-2 inline-block"
+            >
               Go home
             </Link>
           </CardContent>
@@ -93,6 +99,8 @@ export default function TranscriptionDetailPage({
       </main>
     );
   }
+
+  const hasTransliteration = !!transcription.transliteratedText;
 
   const handleCopy = async () => {
     try {
@@ -140,10 +148,10 @@ export default function TranscriptionDetailPage({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      await updateMutation({
+      await saveTransliterationMutation({
         id: transcription._id,
-        text: data.text,
-        segments: data.segments ?? [],
+        transliteratedText: data.text,
+        transliteratedSegments: data.segments ?? [],
       });
       toast.success("Transliterated to romanized Hindi");
     } catch (e) {
@@ -152,6 +160,30 @@ export default function TranscriptionDetailPage({
       setIsTransliterating(false);
     }
   };
+
+  const renderSegments = (
+    segments: { text: string; startSecond: number; endSecond: number }[],
+    fallbackText: string,
+  ) =>
+    segments.length > 0 ? (
+      <div className="space-y-2">
+        {segments.map((seg) => (
+          <div
+            key={`${seg.startSecond}-${seg.endSecond}-${seg.text}`}
+            className="flex gap-3 text-sm"
+          >
+            <span className="text-muted-foreground font-mono text-xs shrink-0 pt-0.5">
+              {formatTimestamp(seg.startSecond)}
+            </span>
+            <p>{seg.text}</p>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <p className="text-sm whitespace-pre-wrap break-words leading-7">
+        {fallbackText}
+      </p>
+    );
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8 flex flex-col h-screen overflow-hidden">
@@ -246,21 +278,30 @@ export default function TranscriptionDetailPage({
               onChange={(e) => setEditText(e.target.value)}
               className="min-h-[300px] h-full font-mono text-sm"
             />
-          ) : transcription.segments.length > 0 ? (
-            <div className="space-y-2">
-              {transcription.segments.map((seg, i) => (
-                <div key={i} className="flex gap-3 text-sm">
-                  <span className="text-muted-foreground font-mono text-xs shrink-0 pt-0.5">
-                    {formatTimestamp(seg.startSecond)}
-                  </span>
-                  <p>{seg.text}</p>
-                </div>
-              ))}
-            </div>
           ) : (
-            <p className="text-sm whitespace-pre-wrap">
-              {transcription.text}
-            </p>
+            <Tabs defaultValue="original">
+              <TabsList>
+                <TabsTrigger value="original">Original</TabsTrigger>
+                <TabsTrigger
+                  value="transliterated"
+                  disabled={!hasTransliteration}
+                >
+                  Transliterated
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="original" className="mt-4">
+                <p className="text-sm whitespace-pre-wrap break-words leading-7">
+                  {transcription.text}
+                </p>
+              </TabsContent>
+              <TabsContent value="transliterated" className="mt-4">
+                {hasTransliteration &&
+                  renderSegments(
+                    transcription.transliteratedSegments ?? [],
+                    transcription.transliteratedText ?? "",
+                  )}
+              </TabsContent>
+            </Tabs>
           )}
         </CardContent>
       </Card>

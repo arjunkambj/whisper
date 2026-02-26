@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 
 export const list = query({
   args: {},
@@ -9,6 +9,22 @@ export const list = query({
       .withIndex("by_position")
       .order("asc")
       .collect();
+  },
+});
+
+export const checkDuplicate = query({
+  args: {
+    fileName: v.string(),
+    fileSize: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("transcriptions")
+      .withIndex("by_fileName_fileSize", (q) =>
+        q.eq("fileName", args.fileName).eq("fileSize", args.fileSize),
+      )
+      .first();
+    return existing !== null;
   },
 });
 
@@ -23,12 +39,22 @@ export const save = mutation({
         text: v.string(),
         startSecond: v.number(),
         endSecond: v.number(),
-      })
+      }),
     ),
     language: v.optional(v.string()),
     durationInSeconds: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const duplicate = await ctx.db
+      .query("transcriptions")
+      .withIndex("by_fileName_fileSize", (q) =>
+        q.eq("fileName", args.fileName).eq("fileSize", args.fileSize),
+      )
+      .first();
+    if (duplicate) {
+      throw new Error("This file has already been transcribed");
+    }
+
     const all = await ctx.db
       .query("transcriptions")
       .withIndex("by_position")
@@ -36,7 +62,31 @@ export const save = mutation({
     for (const item of all) {
       await ctx.db.patch(item._id, { position: item.position + 1 });
     }
-    return await ctx.db.insert("transcriptions", { ...args, position: 0 });
+    return await ctx.db.insert("transcriptions", {
+      ...args,
+      isTranscribed: true,
+      position: 0,
+    });
+  },
+});
+
+export const saveTransliteration = mutation({
+  args: {
+    id: v.id("transcriptions"),
+    transliteratedText: v.string(),
+    transliteratedSegments: v.array(
+      v.object({
+        text: v.string(),
+        startSecond: v.number(),
+        endSecond: v.number(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      transliteratedText: args.transliteratedText,
+      transliteratedSegments: args.transliteratedSegments,
+    });
   },
 });
 
@@ -56,7 +106,7 @@ export const update = mutation({
         text: v.string(),
         startSecond: v.number(),
         endSecond: v.number(),
-      })
+      }),
     ),
   },
   handler: async (ctx, args) => {
@@ -98,7 +148,7 @@ export const reorder = mutation({
       const items = await ctx.db
         .query("transcriptions")
         .withIndex("by_position", (q) =>
-          q.gt("position", oldPosition).lte("position", args.newPosition)
+          q.gt("position", oldPosition).lte("position", args.newPosition),
         )
         .collect();
       for (const i of items) {
@@ -109,7 +159,7 @@ export const reorder = mutation({
       const items = await ctx.db
         .query("transcriptions")
         .withIndex("by_position", (q) =>
-          q.gte("position", args.newPosition).lt("position", oldPosition)
+          q.gte("position", args.newPosition).lt("position", oldPosition),
         )
         .collect();
       for (const i of items) {
