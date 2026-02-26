@@ -279,7 +279,7 @@ export default function TranscriptionDetailPage({
               className="min-h-[300px] h-full font-mono text-sm"
             />
           ) : (
-            <Tabs defaultValue="original">
+            <Tabs defaultValue={hasTransliteration ? "transliterated" : "original"}>
               <TabsList>
                 <TabsTrigger value="original">Original</TabsTrigger>
                 <TabsTrigger
